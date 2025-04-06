@@ -51,6 +51,25 @@ app.get('/api/commands/:name', (req, res) => {
   }
 })
 
+// Ajout de la nouvelle route POST ici
+app.post('/api/commands', (req, res) => {
+  try {
+    const commands = fs.readJsonSync(commandsFile)
+    const newCommand = req.body
+
+    // Validation basique
+    if (!newCommand.itemName || !newCommand.pastebinLink || typeof newCommand.price !== 'number') {
+      return res.status(400).json({ error: 'Données de commande invalides.' })
+    }
+
+    commands.push(newCommand)
+    fs.writeJsonSync(commandsFile, commands)
+    res.status(201).json(newCommand)
+  } catch (error) {
+    res.status(500).json({ error: 'Erreur lors de l\'ajout de la commande.' })
+  }
+})
+
 app.get('/', (req, res) => {
   res.send('API CommandStore is running!')
 })
