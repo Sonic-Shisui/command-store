@@ -1,16 +1,13 @@
 {
-  "name": "commandstore-api",
-  "version": "1.0",
-  "description": "API for CommandStore by ミ★𝐒𝐎𝐍𝐈𝐂✄𝐄𝐗𝐄 3.0★彡 || L'Uchiha Perdu",
-  "main": "server.js",
+  "name": "command-store-api",
+  "version": "1.0.0",
+  "main": "index.js",
   "scripts": {
-    "start": "node server.js"
+    "start": "node index.js"
   },
   "dependencies": {
-    "express": "^4.18.2",
-    "fs-extra": "^11.1.1",
-    "cors": "^2.8.5"
-  },
-  "author": "ミ★𝐒𝐎𝐍𝐈𝐂✄𝐄𝐗𝐄 3.0★彡 || L'Uchiha Perdu",
-  "license": "ISC"
+    "body-parser": "^1.20.2",
+    "cors": "^2.8.5",
+    "express": "^4.18.2"
+  }
 }
