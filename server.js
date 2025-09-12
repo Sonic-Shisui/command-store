@@ -1,84 +1,75 @@
-const express = require('express')
-const fs = require('fs-extra')
-const cors = require('cors')
+const express = require("express")
+const cors = require("cors")
+const bodyParser = require("body-parser")
 
 const app = express()
 const PORT = process.env.PORT || 3000
-const commandsFile = 'commands.json'
 
-app.use(express.json())
+// Middleware
 app.use(cors())
+app.use(bodyParser.json())
 
-if (!fs.existsSync(commandsFile)) {
-  fs.writeFileSync(commandsFile, JSON.stringify([
-    {
-      "itemName": "emojyReply",
-      "pastebinLink": "https://pastebin.com/raw/Y8vVaM6u",
-      "price": 10000000000,
-      "authorName": "L'Uchiha Perdu",
-      "category": "Reply",
-      "rank": "C"
-    },
-    {
-      "itemName": "out2",
-      "pastebinLink": "https://pastebin.com/raw/Bdm4xepY",
-      "price": 2000000000000,
-      "authorName": "L'Uchiha Perdu ",
-      "category": "Utility",
-      "rank": "A"
-    },
-    {
-      "itemName": "Fadil",
-      "pastebinLink": "https://pastebin.com/Anarque",
-      "price": 1500000000000000000000,
-      "authorName": "L'Uchiha Perdu",
-      "category": "AI",
-      "rank": "S"
-    }
-  ]))
-}
-
-app.get('/api/commands', (req, res) => {
-  try {
-    const commands = fs.readJsonSync(commandsFile)
-    res.json(commands)
-  } catch (error) {
-    res.status(500).json({ error: 'Erreur lors de la récupération des commandes.' })
+// Exemple de base de données en mémoire (plus tard on peut brancher MongoDB)
+let commands = [
+  {
+    itemName: "tictactoe",
+    authorName: "ミ★𝐒𝐎𝐍𝐈𝐂✄𝐄𝚇𝙴 3.0★彡",
+    rank: "VIP",
+    price: 5000,
+    pastebinLink: "https://pastebin.com/xxxxx",
+    category: "games"
+  },
+  {
+    itemName: "dames",
+    authorName: "ミ★𝐒𝐎𝐍𝐈𝐂✄𝐄𝚇𝙴 3.0★彡",
+    rank: "VIP+",
+    price: 10000,
+    pastebinLink: "https://pastebin.com/yyyyy",
+    category: "games"
   }
+]
+
+/**
+ * ➤ Routes
+ */
+
+// 1. Obtenir toutes les commandes
+app.get("/api/commands", (req, res) => {
+  res.json(commands)
 })
 
-app.get('/api/commands/:name', (req, res) => {
-  try {
-    const commands = fs.readJsonSync(commandsFile)
-    const command = commands.find(cmd => cmd.itemName.toLowerCase() === req.params.name.toLowerCase())
-    res.json(command || {})
-  } catch (error) {
-    res.status(500).json({ error: 'Erreur lors de la récupération de la commande.' })
+// 2. Obtenir une commande par nom
+app.get("/api/commands/:name", (req, res) => {
+  const name = req.params.name.toLowerCase()
+  const cmd = commands.find(c => c.itemName.toLowerCase() === name)
+  if (!cmd) return res.status(404).json({})
+  res.json(cmd)
+})
+
+// 3. Ajouter / Modifier une commande (PUT)
+app.put("/api/commands/:name", (req, res) => {
+  const name = req.params.name.toLowerCase()
+  const newCommand = { ...req.body, itemName: req.params.name }
+
+  // Vérifie si la commande existe
+  const index = commands.findIndex(c => c.itemName.toLowerCase() === name)
+  if (index >= 0) {
+    commands[index] = newCommand
+  } else {
+    commands.push(newCommand)
   }
+
+  res.json({ success: true, command: newCommand })
 })
 
-app.put('/api/commands/:name', (req, res) => {
-  try {
-    const commands = fs.readJsonSync(commandsFile)
-    const cmdIndex = commands.findIndex(cmd => cmd.itemName.toLowerCase() === req.params.name.toLowerCase())
-    
-    if (cmdIndex !== -1) {
-      commands[cmdIndex] = { ...commands[cmdIndex], ...req.body }
-    } else {
-      commands.push(req.body)
-    }
-
-    fs.writeJsonSync(commandsFile, commands)
-    res.json({ message: 'Commande mise à jour ou ajoutée avec succès.', command: req.body })
-  } catch (error) {
-    res.status(500).json({ error: 'Erreur lors de la mise à jour de la commande.' })
-  }
+// 4. Supprimer une commande
+app.delete("/api/commands/:name", (req, res) => {
+  const name = req.params.name.toLowerCase()
+  commands = commands.filter(c => c.itemName.toLowerCase() !== name)
+  res.json({ success: true })
 })
 
-app.get('/', (req, res) => {
-  res.send('API CommandStore is running!')
-})
-
+// Lancer le serveur
 app.listen(PORT, () => {
-  console.log(`Serveur en marche sur le port ${PORT}`)
+  console.log(`🚀 API CommandStore running on http://localhost:${PORT}`)
 })
