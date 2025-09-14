@@ -15,7 +15,7 @@ let commands = [
     itemName: "tictactoe",
     authorName: "ミ★𝐒𝐎𝐍𝐈𝐂✄𝐄𝚇𝙴 3.0★彡",
     rank: "VIP",
-    price: 100.000.000€,
+    price: "100.000.000€",
     pastebinLink: "https://pastebin.com/xxxxx",
     category: "games"
   },
@@ -23,7 +23,7 @@ let commands = [
     itemName: "dames",
     authorName: "ミ★𝐒𝐎𝐍𝐈𝐂✄𝐄𝚇𝙴 3.0★彡",
     rank: "VIP+",
-    price: 150.000.000€,
+    price: "150.000.000€",
     pastebinLink: "https://pastebin.com/yyyyy",
     category: "games"
   }
