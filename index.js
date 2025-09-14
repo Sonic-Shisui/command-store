@@ -1,33 +1,71 @@
 const express = require("express");
 const cors = require("cors");
 const bodyParser = require("body-parser");
+const fetch = require("node-fetch");
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+const GITHUB_API_URL = "https://api.github.com/repos/Sonic-Shisui/HedgehogGPT/contents";
 
 // Middleware
 app.use(cors());
 app.use(bodyParser.json());
 
 // ---------- Base de données en mémoire ---------- //
-let commands = [
-  {
-    itemName: "tictactoe",
-    authorName: "ミ★𝐒𝐎𝐍𝐈𝐂✄𝐄𝚇𝙴 3.0★彡",
-    rank: "VIP",
-    price: "100.000.000€",
-    pastebinLink: "https://pastebin.com/xxxxx",
-    category: "games"
-  },
-  {
-    itemName: "dames",
-    authorName: "ミ★𝐒𝐎𝐍𝐈𝐂✄𝐄𝚇𝙴 3.0★彡",
-    rank: "VIP+",
-    price: "150.000.000€",
-    pastebinLink: "https://pastebin.com/yyyyy",
-    category: "games"
+let commands = [];
+
+/**
+ * ➤ Récupérer les commandes depuis GitHub
+ */
+async function fetchCommandsFromGitHub() {
+  try {
+    const response = await fetch(GITHUB_API_URL);
+    const files = await response.json();
+
+    // Filtrer les fichiers de commandes (par exemple, ceux avec l'extension .js)
+    const commandFiles = files.filter(file => file.name.endsWith(".js"));
+
+    // Récupérer le contenu de chaque fichier de commande
+    for (const file of commandFiles) {
+      const fileResponse = await fetch(file.download_url);
+      const fileContent = await fileResponse.text();
+
+      // Extraire les informations de la commande depuis le contenu du fichier
+      const command = extractCommandInfo(fileContent);
+      if (command) {
+        commands.push(command);
+      }
+    }
+  } catch (error) {
+    console.error("Erreur lors de la récupération des commandes depuis GitHub :", error);
   }
-];
+}
+
+/**
+ * ➤ Extraire les informations d'une commande depuis le contenu du fichier
+ * @param {string} content - Contenu du fichier de commande
+ * @returns {object|null} - Objet représentant la commande ou null si non valide
+ */
+function extractCommandInfo(content) {
+  try {
+    // Exemple d'extraction basée sur une structure hypothétique
+    const nameMatch = content.match(/name:\s*"(.*?)"/);
+    const priceMatch = content.match(/price:\s*"(.*?)"/);
+    const categoryMatch = content.match(/category:\s*"(.*?)"/);
+
+    if (nameMatch && priceMatch && categoryMatch) {
+      return {
+        itemName: nameMatch[1],
+        price: parseFloat(priceMatch[1].replace(/[^\d.-]/g, "")), // Nettoyer le prix
+        category: categoryMatch[1],
+        description: "Description non fournie", // À adapter selon le contenu
+      };
+    }
+  } catch (error) {
+    console.error("Erreur lors de l'extraction des informations de commande :", error);
+  }
+  return null;
+}
 
 /**
  * ➤ Routes
@@ -39,7 +77,10 @@ app.get("/", (req, res) => {
 });
 
 // 1. Obtenir toutes les commandes
-app.get("/api/commands", (req, res) => {
+app.get("/api/commands", async (req, res) => {
+  if (commands.length === 0) {
+    await fetchCommandsFromGitHub();
+  }
   res.json(commands);
 });
 
