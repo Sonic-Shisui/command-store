@@ -1,7 +1,6 @@
 const express = require("express");
 const cors = require("cors");
 const bodyParser = require("body-parser");
-const fetch = require("node-fetch");
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -20,6 +19,7 @@ let commands = [];
 async function fetchCommandsFromGitHub() {
   try {
     const response = await fetch(GITHUB_API_URL);
+    if (!response.ok) throw new Error(`GitHub API error: ${response.status}`);
     const files = await response.json();
 
     // Filtrer les fichiers de commandes (par exemple, ceux avec l'extension .js)
@@ -28,6 +28,7 @@ async function fetchCommandsFromGitHub() {
     // Récupérer le contenu de chaque fichier de commande
     for (const file of commandFiles) {
       const fileResponse = await fetch(file.download_url);
+      if (!fileResponse.ok) continue;
       const fileContent = await fileResponse.text();
 
       // Extraire les informations de la commande depuis le contenu du fichier
@@ -48,7 +49,6 @@ async function fetchCommandsFromGitHub() {
  */
 function extractCommandInfo(content) {
   try {
-    // Exemple d'extraction basée sur une structure hypothétique
     const nameMatch = content.match(/name:\s*"(.*?)"/);
     const priceMatch = content.match(/price:\s*"(.*?)"/);
     const categoryMatch = content.match(/category:\s*"(.*?)"/);
@@ -58,7 +58,7 @@ function extractCommandInfo(content) {
         itemName: nameMatch[1],
         price: parseFloat(priceMatch[1].replace(/[^\d.-]/g, "")), // Nettoyer le prix
         category: categoryMatch[1],
-        description: "Description non fournie", // À adapter selon le contenu
+        description: "Description non fournie",
       };
     }
   } catch (error) {
@@ -97,7 +97,6 @@ app.put("/api/commands/:name", (req, res) => {
   const name = req.params.name.toLowerCase();
   const newCommand = { ...req.body, itemName: req.params.name };
 
-  // Vérifie si la commande existe
   const index = commands.findIndex(c => c.itemName.toLowerCase() === name);
   if (index >= 0) {
     commands[index] = newCommand;
