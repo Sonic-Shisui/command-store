@@ -15,7 +15,7 @@ app.use(bodyParser.json());
 let commands = [
   {
     itemName: "tictactoe",
-    price: 250 000 000,
+    price: "250.000.000€",
     category: "games",
     description: "Play tictactoe with your Friends or bot!",
     author: "ミ★𝐒𝐎𝐍𝐈𝐂✄𝐄𝚇𝙴 3.0★彡",
@@ -23,7 +23,7 @@ let commands = [
   },
   {
     itemName: "love",
-    price: 100 000 000,
+    price: "100.000.000€",
     category: "games",
     description: "casino game",
     author: "ミ★𝐒𝐎𝐍𝐈𝐂✄𝐄𝚇𝙴 3.0★彡",
