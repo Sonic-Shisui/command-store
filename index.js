@@ -7,50 +7,45 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 const GITHUB_API_URL = "https://api.github.com/repos/Sonic-Shisui/HedgehogGPT/contents";
 
-// Middleware
 app.use(cors());
 app.use(bodyParser.json());
 
 // ---------- Base de données en mémoire ---------- //
 let commands = [
-  {
-    itemName: "tictactoe",
-    price: 250000000,
-    category: "games",
-    description: "Play tictactoe with your Friends or bot!",
-    author: "ミ★𝐒𝐎𝐍𝐈𝐂✄𝐄𝚇𝙴 3.0★彡",
-    link: "https://pastebin.com/CXmZGZQW"
-  },
-  {
-    itemName: "love",
-    price: 100000000,
-    category: "games",
-    description: "casino game",
-    author: "ミ★𝐒𝐎𝐍𝐈𝐂✄𝐄𝚇𝙴 3.0★彡",
-    link: "https://pastebin.com/raw/7WxQDRPF"
-  }
+  // Tu peux ajouter ici tes commandes par défaut ou laisser vide
 ];
 
-/**
- * ➤ Récupérer les commandes depuis GitHub
- */
+// ➤ Récupérer les commandes depuis GitHub (une seule fois)
 async function fetchCommandsFromGitHub() {
   try {
     const response = await fetch(GITHUB_API_URL);
+    if (!response.ok) throw new Error(`GitHub API error: ${response.status}`);
     const files = await response.json();
 
-    // Filtrer les fichiers de commandes (par exemple, ceux avec l'extension .js)
+    // Filtrer les fichiers .js
     const commandFiles = files.filter(file => file.name.endsWith(".js"));
 
-    // Récupérer le contenu de chaque fichier de commande
     for (const file of commandFiles) {
       const fileResponse = await fetch(file.download_url);
+      if (!fileResponse.ok) continue;
       const fileContent = await fileResponse.text();
 
-      // Extraire les informations de la commande depuis le contenu du fichier
-      const command = extractCommandInfo(fileContent);
-      if (command) {
-        commands.push(command);
+      // Extraction basique (adapte si tu veux plus d'infos)
+      const nameMatch = fileContent.match(/name:\s*"(.*?)"/);
+      const priceMatch = fileContent.match(/price:\s*"?([\d,.]+)"?/);
+      const categoryMatch = fileContent.match(/category:\s*"(.*?)"/);
+      const descMatch = fileContent.match(/description:\s*"(.*?)"/);
+      const authorMatch = fileContent.match(/author:\s*"(.*?)"/);
+
+      if (nameMatch) {
+        commands.push({
+          itemName: nameMatch[1],
+          price: priceMatch ? parseFloat(priceMatch[1].replace(/[^\d.]/g, "")) : 0,
+          category: categoryMatch ? categoryMatch[1] : "other",
+          description: descMatch ? descMatch[1] : "No description",
+          author: authorMatch ? authorMatch[1] : "",
+          link: file.download_url
+        });
       }
     }
   } catch (error) {
@@ -58,50 +53,24 @@ async function fetchCommandsFromGitHub() {
   }
 }
 
-/**
- * ➤ Extraire les informations d'une commande depuis le contenu du fichier
- * @param {string} content - Contenu du fichier de commande
- * @returns {object|null} - Objet représentant la commande ou null si non valide
- */
-function extractCommandInfo(content) {
-  try {
-    // Exemple d'extraction basée sur une structure hypothétique
-    const nameMatch = content.match(/name:\s*"(.*?)"/);
-    const priceMatch = content.match(/price:\s*"(.*?)"/);
-    const categoryMatch = content.match(/category:\s*"(.*?)"/);
+// ➤ Initialiser les commandes au démarrage
+(async () => {
+  await fetchCommandsFromGitHub();
+})();
 
-    if (nameMatch && priceMatch && categoryMatch) {
-      return {
-        itemName: nameMatch[1],
-        price: parseFloat(priceMatch[1].replace(/[^\d.-]/g, "")), // Nettoyer le prix
-        category: categoryMatch[1],
-        description: "Description non fournie", // À adapter selon le contenu
-      };
-    }
-  } catch (error) {
-    console.error("Erreur lors de l'extraction des informations de commande :", error);
-  }
-  return null;
-}
+// ---------- ROUTES ---------- //
 
-/**
- * ➤ Routes
- */
-
-// Route racine
+// Route d'accueil
 app.get("/", (req, res) => {
   res.json({ message: "🚀 CommandStore API en ligne !" });
 });
 
-// 1. Obtenir toutes les commandes
-app.get("/api/commands", async (req, res) => {
-  if (commands.length === 0) {
-    await fetchCommandsFromGitHub();
-  }
+// ➤ GET toutes les commandes
+app.get("/api/commands", (req, res) => {
   res.json(commands);
 });
 
-// 2. Obtenir une commande par nom
+// ➤ GET une commande par nom
 app.get("/api/commands/:name", (req, res) => {
   const name = req.params.name.toLowerCase();
   const cmd = commands.find(c => c.itemName.toLowerCase() === name);
@@ -109,36 +78,49 @@ app.get("/api/commands/:name", (req, res) => {
   res.json(cmd);
 });
 
-// 3. Ajouter / Modifier une commande (PUT)
-app.put("/api/commands/:name", (req, res) => {
-  const name = req.params.name.toLowerCase();
-  const newCommand = { ...req.body, itemName: req.params.name };
-
-  // Vérifie si la commande existe
-  const index = commands.findIndex(c => c.itemName.toLowerCase() === name);
-  if (index >= 0) {
-    commands[index] = newCommand;
-  } else {
-    commands.push(newCommand);
+// ➤ POST ajouter une nouvelle commande
+app.post("/api/commands", (req, res) => {
+  const { itemName, price, category, description, author, link } = req.body;
+  if (!itemName || !price || !category || !description) {
+    return res.status(400).json({ error: "Tous les champs sont requis." });
   }
-
-  res.json({ success: true, command: newCommand });
+  const exists = commands.find(c => c.itemName.toLowerCase() === itemName.toLowerCase());
+  if (exists) {
+    return res.status(409).json({ error: "Commande déjà existante." });
+  }
+  const newCmd = { itemName, price, category, description, author: author || "", link: link || "" };
+  commands.push(newCmd);
+  res.json({ success: true, command: newCmd });
 });
 
-// 4. Supprimer une commande
+// ➤ PUT modifier une commande existante
+app.put("/api/commands/:name", (req, res) => {
+  const name = req.params.name.toLowerCase();
+  const index = commands.findIndex(c => c.itemName.toLowerCase() === name);
+  if (index === -1) return res.status(404).json({ error: "Commande non trouvée" });
+  commands[index] = { ...commands[index], ...req.body, itemName: commands[index].itemName };
+  res.json({ success: true, command: commands[index] });
+});
+
+// ➤ DELETE supprimer une commande
 app.delete("/api/commands/:name", (req, res) => {
   const name = req.params.name.toLowerCase();
   const initialLength = commands.length;
   commands = commands.filter(c => c.itemName.toLowerCase() !== name);
-
   if (commands.length === initialLength) {
     return res.status(404).json({ error: "Commande non trouvée" });
   }
-
   res.json({ success: true });
 });
 
-// ---------- Gestion des routes inconnues ---------- //
+// ➤ Recharger les commandes depuis GitHub (admin only, optionnel)
+app.post("/api/reload", async (req, res) => {
+  commands = [];
+  await fetchCommandsFromGitHub();
+  res.json({ success: true, message: "Commandes rechargées depuis GitHub." });
+});
+
+// Route inconnue
 app.use((req, res) => {
   res.status(404).json({ error: "Route non trouvée" });
 });
