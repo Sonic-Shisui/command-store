@@ -16,7 +16,7 @@ let commands = [
     authorName: "ミ★𝐒𝐎𝐍𝐈𝐂✄𝐄𝚇𝙴 3.0★彡",
     rank: "VIP",
     price: "100.000.000€",
-    pastebinLink: "https://pastebin.com/xxxxx",
+    pastebinLink: "https://pastebin.com/r2jxk3di",
     category: "games"
   },
   {
