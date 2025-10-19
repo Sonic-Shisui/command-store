@@ -1,7 +1,6 @@
 const express = require("express");
 const cors = require("cors");
 const bodyParser = require("body-parser");
-const fetch = require("node-fetch");
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -29,75 +28,6 @@ let commands = [
     category: "games"
   }
 ];
-
-// ---------- Configuration GitHub ---------- //
-const GITHUB_REPO_API = "https://api.github.com/repos/Sonic-Shisui/HedgehogGPT/contents";
-
-// ---------- Fonction pour récupérer les fichiers du repo ---------- //
-async function fetchCommandsFromGitHub() {
-  try {
-    console.log("🔄 Synchronisation avec le dépôt GitHub...");
-
-    const response = await fetch(GITHUB_REPO_API);
-    const files = await response.json();
-
-    if (!Array.isArray(files)) {
-      console.error("❌ Erreur lors de la récupération du dépôt GitHub :", files);
-      return;
-    }
-
-    // Filtrer uniquement les fichiers JavaScript (commandes)
-    const commandFiles = files.filter(file => file.name.endsWith(".js"));
-
-    // Tableau temporaire
-    const newCommands = [];
-
-    // Récupérer le contenu de chaque fichier
-    for (const file of commandFiles) {
-      const fileResponse = await fetch(file.download_url);
-      const content = await fileResponse.text();
-
-      const extracted = extractCommandInfo(content, file.name);
-      if (extracted) newCommands.push(extracted);
-    }
-
-    // Mettre à jour la base de données locale
-    if (newCommands.length > 0) {
-      commands = newCommands;
-      console.log(`✅ ${commands.length} commandes synchronisées depuis GitHub.`);
-    } else {
-      console.log("⚠️ Aucune commande valide trouvée dans le repo.");
-    }
-  } catch (err) {
-    console.error("❌ Erreur lors de la synchronisation GitHub :", err);
-  }
-}
-
-// ---------- Fonction pour extraire les infos d'une commande ---------- //
-function extractCommandInfo(content, filename) {
-  try {
-    const nameMatch = content.match(/name:\s*["'`](.*?)["'`]/);
-    const descMatch = content.match(/description:\s*["'`](.*?)["'`]/);
-    const categoryMatch = content.match(/category:\s*["'`](.*?)["'`]/);
-
-    return {
-      itemName: nameMatch ? nameMatch[1] : filename.replace(".js", ""),
-      authorName: "ミ★𝐒𝐎𝐍𝐈𝐂✄𝐄𝚇𝙴 3.0★彡",
-      rank: "VIP",
-      price: "Gratuit",
-      pastebinLink: `https://github.com/Sonic-Shisui/HedgehogGPT/blob/main/${filename}`,
-      category: categoryMatch ? categoryMatch[1] : "Autres",
-      description: descMatch ? descMatch[1] : "Aucune description disponible"
-    };
-  } catch (err) {
-    console.error("Erreur d'extraction :", err);
-    return null;
-  }
-}
-
-// ---------- Synchronisation automatique toutes les 10 min ---------- //
-fetchCommandsFromGitHub();
-setInterval(fetchCommandsFromGitHub, 10 * 60 * 1000);
 
 /**
  * ➤ Routes
